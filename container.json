@@ -1,0 +1,8 @@
+{
+	"id": "nodejs",
+	"type": "wedeploy/nodejs",
+	"hooks": {
+		"build": "npm install",
+    "start": "node index.js"
+	}
+}
