@@ -4,7 +4,7 @@ const classifier = new natural.BayesClassifier();
 
 
 classifier.addDocument('pay my bills', 'pay');
-classifier.addDocument('pay my check', 'pay');
+classifier.addDocument('pay my checks', 'pay');
 classifier.addDocument('pay my invoice', 'pay');
 classifier.addDocument('withdraw money to my account', 'withdrawal');
 classifier.addDocument('send money to my account', 'withdrawal');
