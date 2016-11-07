@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const request = require('request');
 const app = express();
+const natural = require('natural');
+const classifier = new natural.BayesClassifier();
 
 app.use(bodyParser.urlencoded({extended: false}));
 app.use(bodyParser.json());
@@ -27,7 +29,27 @@ app.post('/webhook', function (req, res) {
     for (i = 0; i < events.length; i++) {
         var event = events[i];
         if (event.message && event.message.text) {
-            sendMessage(event.sender.id, {text: "Echo: " + event.message.text});
+            natural.BayesClassifier.load('classifier.json', null, function(err, classifier) {
+              const resultClassifier = classifier.classify(event.message.text);
+              switch(resultClassifier){
+                case 'getPrice':
+                  sendMessage(event.sender.id, {text: `Hi, the bitcoin price today is: 2333.90zl`});
+                  break;
+                case 'pay':
+                  sendMessage(event.sender.id, {text: `Hi, do you want to pay your bill? Type the beneficiary name.`});
+                  break;
+                case 'topup':
+                  sendMessage(event.sender.id, {text: `Hi, what's the operator? Play? Orange? Virgin?`});
+                  break;
+                case 'withdrawal':
+                  sendMessage(event.sender.id, {text: `Hi, to which account do you want to send?`});
+                  break;
+                default:
+                  sendMessage(event.sender.id, {text: `Sorry, I didn't understand, can you type again?`});
+                  break;
+                
+              }
+            });
         }
     }
     res.sendStatus(200);
