@@ -1,42 +1,20 @@
 'use strict';
 
-// Messenger API integration example
-// We assume you have:
-// * a Wit.ai bot setup (https://wit.ai/docs/quickstart)
-// * a Messenger Platform setup (https://developers.facebook.com/docs/messenger-platform/quickstart)
-// You need to `npm install` the following dependencies: body-parser, express, request.
-//
-// 1. npm install body-parser express request
-// 2. Download and install ngrok from https://ngrok.com/download
-// 3. ./ngrok http 8445
-// 4. WIT_TOKEN=your_access_token FB_APP_SECRET=your_app_secret FB_PAGE_TOKEN=your_page_token node examples/messenger.js
-// 5. Subscribe your page to the Webhooks using verify_token and `https://<your_ngrok_io>/webhook` as callback URL.
-// 6. Talk to your bot on Messenger!
 
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const express = require('express');
 const fetch = require('node-fetch');
 const request = require('request');
+const _ = require('lodash');
 
-let Wit = null;
-let log = null;
-try {
-  // if running from repo
-  Wit = require('../').Wit;
-  log = require('../').log;
-} catch (e) {
-  Wit = require('node-wit').Wit;
-  log = require('node-wit').log;
-}
+const Wit = require('node-wit').Wit;
+const log = require('node-wit').log;
 
-// Webserver parameter
 const PORT = process.env.PORT || 8445;
 
-// Wit.ai parameters
 const WIT_TOKEN = process.env.WIT_TOKEN;
 
-// Messenger API parameters
 const FB_PAGE_TOKEN = process.env.FB_PAGE_TOKEN;
 if (!FB_PAGE_TOKEN) { throw new Error('missing FB_PAGE_TOKEN') }
 const FB_APP_SECRET = process.env.FB_APP_SECRET;
@@ -49,11 +27,6 @@ crypto.randomBytes(8, (err, buff) => {
   console.log(`/webhook will accept the Verify Token "${FB_VERIFY_TOKEN}"`);
 });
 
-// ----------------------------------------------------------------------------
-// Messenger API specific code
-
-// See the Send API reference
-// https://developers.facebook.com/docs/messenger-platform/send-api-reference
 
 const fbMessage = (id, text) => {
   const body = JSON.stringify({
@@ -75,12 +48,6 @@ const fbMessage = (id, text) => {
   });
 };
 
-// ----------------------------------------------------------------------------
-// Wit.ai bot specific code
-
-// This will contain all user sessions.
-// Each session has an entry:
-// sessionId -> {fbid: facebookUserId, context: sessionState}
 const sessions = {};
 
 const findOrCreateSession = (fbid) => {
@@ -98,6 +65,18 @@ const findOrCreateSession = (fbid) => {
     sessions[sessionId] = {fbid: fbid, context: {}};
   }
   return sessionId;
+};
+
+const firstEntityValue = (entities, entity) => {
+  const val = entities && entities[entity] &&
+    Array.isArray(entities[entity]) &&
+    entities[entity].length > 0 &&
+    entities[entity][0].value
+  ;
+  if (!val) {
+    return null;
+  }
+  return typeof val === 'object' ? val.value : val;
 };
 
 // Our bot actions
@@ -126,14 +105,27 @@ const actions = {
       return Promise.resolve()
     }
   },
-  // You should implement your custom actions here
-  // See https://wit.ai/docs/quickstart
-  getForecast({sessionId, context, text, entities}) {
-    console.log(`Session ${sessionId} received ${text}`);
-    console.log(`The current context is ${JSON.stringify(context)}`);
-    console.log(`Wit extracted ${JSON.stringify(entities)}`);
-    return Promise.resolve(context);
-  }
+  getForecast({context, entities}) {
+    return new Promise(function(resolve, reject) {
+      var location = firstEntityValue(entities, "location")
+      if (location) {
+        context.forecast = 'sunny in ' + location; // we should call a weather API here
+        delete context.missingLocation;
+      } else {
+        context.missingLocation = true;
+        delete context.forecast;
+      }
+      return resolve(context);
+    });
+  },
+  answerCompliment({context, entities}) {
+    return new Promise(function(resolve, reject) {
+      const nameArrays = ['Mia', 'Alexa', 'Sasha', 'Angelika'];
+      context.answer = _.sample(nameArrays);
+
+      return resolve(context);
+    });
+  },
 };
 
 // Setting up our bot
