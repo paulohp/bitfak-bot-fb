@@ -107,7 +107,7 @@ const actions = {
   },
   getForecast({context, entities}) {
     return new Promise(function(resolve, reject) {
-      var location = firstEntityValue(entities, "location")
+      var location = firstEntityValue(entities, "location");
       if (location) {
         context.forecast = 'sunny in ' + location; // we should call a weather API here
         delete context.missingLocation;
@@ -118,11 +118,20 @@ const actions = {
       return resolve(context);
     });
   },
-  answerCompliment({context, entities}) {
+  getBitcoinPrice({context, entities}) {
     return new Promise(function(resolve, reject) {
-      const nameArrays = ['Mia', 'Alexa', 'Sasha', 'Angelika'];
-      context.answer = _.sample(nameArrays);
-
+      fetch('https://bitfak-api.appspot.com/api/v1/ticker/pln?amount=0')
+        .then(result => result.json())
+        .then(result => {
+          context.bitcoinPrice = result.bitcoinPrice;
+          return resolve(context);
+        });
+    });
+  },
+  convertCurrencyToBtc({context, entities}) {
+    console.log(entities);
+    return new Promise(function(resolve, reject) {
+      context.totalBitcoin = 0.4;
       return resolve(context);
     });
   },
